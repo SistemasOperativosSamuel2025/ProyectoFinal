@@ -1,6 +1,15 @@
-//
-// Created by estudiante on 23/05/25.
-//
+/*
+ * =============================================================================
+ * Proyecto: Sistema de Préstamo de Libros - Proceso Solicitante
+ * Archivo: solicitante.c
+ * Autor: Samuel Emperador
+ * Fecha: 23/05/2025
+ * Descripción: Implementa el proceso solicitante que puede enviar solicitudes
+ *              de préstamo, devolución y renovación de libros a través de pipes
+ *              nombrados. Soporta modo interactivo y procesamiento por lotes.
+ * =============================================================================
+ */
+
 #include "estructuras.h"
 
 // Variables globales
@@ -75,10 +84,10 @@ int recibir_respuesta(respuesta_t *resp) {
     close(resp_fd);
     unlink(pipe_respuesta);
 
-    return 0;
 }
 
 // Función para procesar archivo de entrada
+// Función corregida para procesar archivo de entrada
 void procesar_archivo() {
     FILE *file = fopen(input_file, "r");
     if (!file) {
@@ -90,20 +99,58 @@ void procesar_archivo() {
     while (fgets(linea, sizeof(linea), file)) {
         // Remover salto de línea
         linea[strcspn(linea, "\n")] = 0;
+        
+        // Ignorar líneas vacías
+        if (strlen(linea) == 0) {
+            continue;
+        }
 
-        // Parsear línea
+        // Parsear línea con formato: "OPERACION, NOMBRE_LIBRO, ISBN"
         char op_char;
         char nombre[MAX_STRING];
         int isbn;
 
-        if (sscanf(linea, "%c, %[^,], %d", &op_char, nombre, &isbn) != 3) {
+        // Usar un parsing más robusto
+        char *token1 = strtok(linea, ",");
+        char *token2 = strtok(NULL, ",");
+        char *token3 = strtok(NULL, ",");
+        
+        if (token1 == NULL || token2 == NULL || token3 == NULL) {
             printf("Error parseando línea: %s\n", linea);
             continue;
         }
+        
+        // Limpiar espacios en blanco
+        while (*token1 == ' ') token1++;  // Quitar espacios del inicio
+        while (*token2 == ' ') token2++;
+        while (*token3 == ' ') token3++;
+        
+        op_char = token1[0];
+        strcpy(nombre, token2);
+        isbn = atoi(token3);
 
         // Crear solicitud
         solicitud_t sol;
-        sol.operacion = (operation_t)op_char;
+        
+        // Convertir carácter a operation_t
+        switch(op_char) {
+            case 'P':
+                sol.operacion = OP_PRESTAR;
+                break;
+            case 'R':
+                sol.operacion = OP_RENOVAR;
+                break;
+            case 'D':
+                sol.operacion = OP_DEVOLVER;
+                break;
+            case 'Q':
+                sol.operacion = OP_SALIR;
+                break;
+            default:
+                printf("Operación desconocida: %c\n", op_char);
+                continue;
+        }
+        
         strcpy(sol.nombre_libro, nombre);
         sol.isbn = isbn;
 
@@ -123,8 +170,15 @@ void procesar_archivo() {
                 if (sol.operacion == OP_RENOVAR && resp.exito) {
                     printf("Nueva fecha de devolución: %s\n", resp.fecha_devolucion);
                 }
+            } else {
+                printf("Error recibiendo respuesta\n");
             }
+        } else {
+            printf("Error enviando solicitud\n");
         }
+        
+        // Pequeña pausa para evitar saturar el sistema
+        usleep(100000); // 100ms
     }
 
     fclose(file);
