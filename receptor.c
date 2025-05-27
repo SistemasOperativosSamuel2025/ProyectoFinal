@@ -1,7 +1,20 @@
-//
-// Created by estudiante on 23/05/25.
-//
-
+/*
+ * =============================================================================
+ * Proyecto: Sistema de Préstamo de Libros - Proceso Receptor
+ * Archivo: receptor.c
+ * Autor: [Tu Nombre]
+ * Fecha: 23/05/2025
+ * Descripción: Implementa el proceso receptor que maneja la base de datos de
+ *              libros y procesa solicitudes de préstamo, devolución y renovación
+ *              usando múltiples hilos y sincronización con mutexes.
+ * Funcionalidades:
+ *   - Gestión de base de datos de libros
+ *   - Procesamiento concurrente de solicitudes
+ *   - Buffer circular para renovaciones/devoluciones
+ *   - Generación de reportes
+ *   - Comunicación por pipes nombrados
+ * =============================================================================
+ */
 #include "estructuras.h"
 
 // Variables globales
@@ -196,24 +209,43 @@ void procesar_devolucion(solicitud_t *sol) {
 
 // Función para procesar renovación
 void procesar_renovacion(solicitud_t *sol) {
+    respuesta_t resp_renovacion;
     pthread_mutex_lock(&bd_mutex);
-
     int libro_idx = encontrar_libro(sol->isbn);
-    if (libro_idx != -1) {
-        // Buscar ejemplar prestado y renovar
+    if (libro_idx == -1) {
+        resp_renovacion.exito = 0;
+        strcpy(resp_renovacion.mensaje, "Libro no encontrado");
+        strcpy(resp_renovacion.fecha_devolucion, "");
+    } else {
+        // Buscar ejemplar prestado
+        int encontrado = 0;
         for (int i = 0; i < biblioteca[libro_idx].num_ejemplares; i++) {
             if (biblioteca[libro_idx].ejemplares[i].status == STATUS_PRESTADO) {
+                // Renovar por 7 días más
                 agregar_dias_fecha(biblioteca[libro_idx].ejemplares[i].fecha, 7);
 
+                resp_renovacion.exito = 1;
+                // MENSAJE MÁS CORTO PARA EVITAR TRUNCACIÓN
+                strcpy(resp_renovacion.mensaje, "Renovación exitosa");
+                strcpy(resp_renovacion.fecha_devolucion,
+                       biblioteca[libro_idx].ejemplares[i].fecha);
                 agregar_reporte('R', biblioteca[libro_idx].nombre, sol->isbn,
                                biblioteca[libro_idx].ejemplares[i].numero,
                                biblioteca[libro_idx].ejemplares[i].fecha);
+                encontrado = 1;
                 break;
             }
         }
+        if (!encontrado) {
+            resp_renovacion.exito = 0;
+            strcpy(resp_renovacion.mensaje, "No hay ejemplares prestados para renovar");
+            strcpy(resp_renovacion.fecha_devolucion, "");
+        }
     }
-
     pthread_mutex_unlock(&bd_mutex);
+    // Enviar respuesta específica
+    enviar_respuesta(sol->pid_solicitante, &resp_renovacion);
+    buffer_put(sol);
 }
 
 // Hilo auxiliar 1 para procesar devoluciones y renovaciones
@@ -443,13 +475,8 @@ int main(int argc, char *argv[]) {
                     break;
 
                 case OP_RENOVAR:
-                    resp.exito = 1;
-                    strcpy(resp.mensaje, "Renovación procesada");
-                    obtener_fecha_actual(resp.fecha_devolucion);
-                    agregar_dias_fecha(resp.fecha_devolucion, 7);
-                    enviar_respuesta(sol.pid_solicitante, &resp);
-                    buffer_put(&sol); // Enviar al hilo auxiliar
-                    break;
+			procesar_renovacion(&sol);
+			break;
 
                 case OP_PRESTAR:
                     procesar_prestamo(&sol);
