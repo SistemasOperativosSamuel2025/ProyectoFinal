@@ -2,7 +2,7 @@
  * =============================================================================
  * Proyecto: Sistema de Préstamo de Libros - Proceso Receptor
  * Archivo: receptor.c
- * Autor: [Tu Nombre]
+ * Autor: Samuel Emperador
  * Fecha: 23/05/2025
  * Descripción: Implementa el proceso receptor que maneja la base de datos de
  *              libros y procesa solicitudes de préstamo, devolución y renovación
