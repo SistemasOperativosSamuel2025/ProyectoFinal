@@ -1,5 +1,19 @@
-// Created by estudiante on 23/05/25.
-//
+/*
+ * =============================================================================
+ * Proyecto: Sistema de Préstamo de Libros
+ * Archivo: estructuras.h
+ * Autor: [Tu Nombre]
+ * Fecha: 23/05/2025
+ * Descripción: Archivo de cabecera que contiene todas las estructuras de datos,
+ *              enums, constantes y declaraciones de funciones compartidas
+ *              entre los procesos solicitante y receptor del sistema.
+ * Incluye:
+ *   - Definiciones de tipos de datos para libros y ejemplares
+ *   - Estructuras para comunicación IPC (solicitudes y respuestas)
+ *   - Buffer circular para sincronización entre hilos
+ *   - Funciones utilitarias para manejo de fechas y validaciones
+ * =============================================================================
+ */
 
 #ifndef ESTRUCTURAS_H
 #define ESTRUCTURAS_H
