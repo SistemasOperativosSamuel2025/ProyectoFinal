@@ -2,7 +2,7 @@
  * =============================================================================
  * Proyecto: Sistema de Préstamo de Libros
  * Archivo: estructuras.h
- * Autor: [Tu Nombre]
+ * Autor: Samuel Emperador
  * Fecha: 23/05/2025
  * Descripción: Archivo de cabecera que contiene todas las estructuras de datos,
  *              enums, constantes y declaraciones de funciones compartidas
